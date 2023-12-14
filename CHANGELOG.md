@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/allisson/pysqsx/compare/v0.1.0...v0.2.0) (2023-12-14)
+
+
+### Features
+
+* add the sqsx.RawQueue ([#6](https://github.com/allisson/pysqsx/issues/6)) ([7d9db2a](https://github.com/allisson/pysqsx/commit/7d9db2ab499f4bc3914e329514f962233f068175))
+
 ## 0.1.0 (2023-12-14)
 
 
