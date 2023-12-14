@@ -1,13 +1,13 @@
 import os
+import re
 import signal
 import threading
 import time
 from unittest import mock
 
 import pytest
-from pydantic_core import ValidationError
 
-from sqsx.queue import Queue
+from sqsx.queue import queue_url_regex
 
 
 def task_handler(context, a, b, c):
@@ -18,6 +18,16 @@ def exception_handler(context, a, b, c):
     raise Exception("BOOM!")
 
 
+def raw_exception_handler(queue_url, sqs_message):
+    raise Exception("BOOM!")
+
+
+def trigger_signal():
+    pid = os.getpid()
+    time.sleep(0.2)
+    os.kill(pid, signal.SIGINT)
+
+
 class SumHandler:
     result_sum = 0
 
@@ -25,45 +35,27 @@ class SumHandler:
         self.result_sum += a + b + c
 
 
-@pytest.mark.parametrize(
-    "queue_url",
-    [
-        ("https://sqs.us-east-1.amazonaws.com/177715257436"),
-        ("https://sqs.us-east-1.amazonaws.com/1/MyQueue"),
-        ("https://sqs.us-east-1.amazonaws.com/MyQueue"),
-    ],
-)
-def test_queue_invalid_url(queue_url, sqs_client):
-    expected_error = [
-        {
-            "type": "string_pattern_mismatch",
-            "loc": ("url",),
-            "msg": "String should match pattern '(http|https)[:][\\/]{2}[a-zA-Z0-9-_:.]+[\\/][0-9]{12}[\\/]{1}[a-zA-Z0-9-_]{0,80}'",
-            "input": queue_url,
-            "ctx": {
-                "pattern": "(http|https)[:][\\/]{2}[a-zA-Z0-9-_:.]+[\\/][0-9]{12}[\\/]{1}[a-zA-Z0-9-_]{0,80}"
-            },
-            "url": "https://errors.pydantic.dev/2.5/v/string_pattern_mismatch",
-        }
-    ]
+class CallCountHandler:
+    call_count = 0
 
-    with pytest.raises(ValidationError) as excinfo:
-        Queue(url=queue_url, sqs_client=sqs_client)
-
-    assert excinfo.value.errors() == expected_error
+    def __call__(self, queue_url, sqs_message):
+        self.call_count += 1
 
 
 @pytest.mark.parametrize(
-    "queue_url",
+    "queue_url,expected",
     [
-        ("http://localhost:9324/000000000000/tests"),
-        ("https://localhost:9324/000000000000/tests"),
-        ("https://sqs.us-east-1.amazonaws.com/177715257436/MyQueue"),
+        ("https://sqs.us-east-1.amazonaws.com/177715257436", False),
+        ("https://sqs.us-east-1.amazonaws.com/1/MyQueue", False),
+        ("https://sqs.us-east-1.amazonaws.com/MyQueue", False),
+        ("http://localhost:9324/000000000000/tests", True),
+        ("https://localhost:9324/000000000000/tests", True),
+        ("https://sqs.us-east-1.amazonaws.com/177715257436/MyQueue", True),
     ],
 )
-def test_queue_valid_url(queue_url, sqs_client):
-    queue = Queue(url=queue_url, sqs_client=sqs_client)
-    assert queue.url == queue_url
+def test_queue_url_regex(queue_url, expected):
+    result = True if re.search(queue_url_regex, queue_url) else False
+    assert result == expected
 
 
 def test_queue_add_task_handler(queue):
@@ -89,11 +81,11 @@ def test_queue_add_task(queue):
     assert response["MD5OfMessageAttributes"] == expected_md5_message_attribute
 
 
-def test_queue_consume_task_without_task_name_attribute(queue, sqs_message, caplog):
+def test_queue_consume_message_without_task_name_attribute(queue, sqs_message, caplog):
     queue._message_nack = mock.MagicMock()
     sqs_message["MessageAttributes"].pop("TaskName")
 
-    queue._consume_task(sqs_message)
+    queue._consume_message(sqs_message)
 
     queue._message_nack.assert_called_once_with(sqs_message)
     assert caplog.record_tuples == [
@@ -105,10 +97,10 @@ def test_queue_consume_task_without_task_name_attribute(queue, sqs_message, capl
     ]
 
 
-def test_queue_consume_task_without_task_handler(queue, sqs_message, caplog):
+def test_queue_consume_message_without_task_handler(queue, sqs_message, caplog):
     queue._message_nack = mock.MagicMock()
 
-    queue._consume_task(sqs_message)
+    queue._consume_message(sqs_message)
 
     queue._message_nack.assert_called_once_with(sqs_message)
     assert caplog.record_tuples == [
@@ -120,12 +112,12 @@ def test_queue_consume_task_without_task_handler(queue, sqs_message, caplog):
     ]
 
 
-def test_queue_consume_task_with_invalid_body(queue, sqs_message, caplog):
+def test_queue_consume_message_with_invalid_body(queue, sqs_message, caplog):
     queue._message_nack = mock.MagicMock()
     sqs_message["Body"] = "invalid-body"
 
     queue.add_task_handler("my_task", task_handler)
-    queue._consume_task(sqs_message)
+    queue._consume_message(sqs_message)
 
     queue._message_nack.assert_called_once_with(sqs_message)
     assert caplog.record_tuples == [
@@ -137,11 +129,11 @@ def test_queue_consume_task_with_invalid_body(queue, sqs_message, caplog):
     ]
 
 
-def test_queue_consume_task_with_task_handler_exception(queue, sqs_message, caplog):
+def test_queue_consume_message_with_task_handler_exception(queue, sqs_message, caplog):
     queue._message_nack = mock.MagicMock()
 
     queue.add_task_handler("my_task", exception_handler)
-    queue._consume_task(sqs_message)
+    queue._consume_message(sqs_message)
 
     queue._message_nack.assert_called_once_with(sqs_message)
     assert caplog.record_tuples == [
@@ -153,23 +145,23 @@ def test_queue_consume_task_with_task_handler_exception(queue, sqs_message, capl
     ]
 
 
-def test_queue_consume_tasks(queue):
+def test_queue_consume_messages(queue):
     handler = SumHandler()
 
     queue.add_task_handler("my_task", handler)
     queue.add_task("my_task", a=1, b=2, c=3)
     queue.add_task("my_task", a=1, b=2, c=3)
 
-    queue.consume_tasks(max_tasks=2, max_threads=2, run_forever=False)
+    queue.consume_messages(max_messages=2, max_threads=2, run_forever=False)
 
     assert handler.result_sum == 12
 
 
-def test_queue_consume_tasks_with_task_handler_exception(queue, caplog):
+def test_queue_consume_messages_with_task_handler_exception(queue, caplog):
     queue.add_task_handler("my_task", exception_handler)
     queue.add_task("my_task", a=1, b=2, c=3)
 
-    queue.consume_tasks(run_forever=False)
+    queue.consume_messages(run_forever=False)
 
     assert caplog.record_tuples[0][0] == "sqsx.queue"
     assert caplog.record_tuples[0][1] == 40
@@ -177,11 +169,6 @@ def test_queue_consume_tasks_with_task_handler_exception(queue, caplog):
 
 
 def test_queue_exit_gracefully(queue):
-    def trigger_signal():
-        pid = os.getpid()
-        time.sleep(0.2)
-        os.kill(pid, signal.SIGINT)
-
     thread = threading.Thread(target=trigger_signal)
     thread.daemon = True
     thread.start()
@@ -190,6 +177,59 @@ def test_queue_exit_gracefully(queue):
     queue.add_task_handler("my_task", handler)
     queue.add_task("my_task", a=1, b=2, c=3)
 
-    queue.consume_tasks(wait_seconds=1, run_forever=True)
+    queue.consume_messages(wait_seconds=1, run_forever=True)
 
     assert handler.result_sum == 6
+
+
+def test_raw_queue_add_message(raw_queue):
+    expected_md5_message_body = "069840f6917e85a02167febb964f0041"
+    expected_md5_message_attribute = "90f34a800b9d242c1b32320e4a3ed630"
+    response = raw_queue.add_message(
+        message_body="My Message",
+        message_attributes={"Attr1": {"DataType": "String", "StringValue": "Attr1"}},
+    )
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["MD5OfMessageBody"] == expected_md5_message_body
+    assert response["MD5OfMessageAttributes"] == expected_md5_message_attribute
+
+
+def test_raw_queue_consume_messages(raw_queue):
+    handler = CallCountHandler()
+    raw_queue.message_handler_function = handler
+
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.add_message(message_body="Message Body")
+
+    raw_queue.consume_messages(max_messages=3, max_threads=3, run_forever=False)
+
+    assert handler.call_count == 3
+
+
+def test_raw_queue_consume_messages_with_message_handler_exception(raw_queue, caplog):
+    raw_queue.message_handler_function = raw_exception_handler
+
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.consume_messages(run_forever=False)
+
+    assert caplog.record_tuples[0][0] == "sqsx.queue"
+    assert caplog.record_tuples[0][1] == 40
+    assert "Error while processing" in caplog.record_tuples[0][2]
+
+
+def test_raw_queue_exit_gracefully(raw_queue):
+    thread = threading.Thread(target=trigger_signal)
+    thread.daemon = True
+    thread.start()
+    handler = handler = CallCountHandler()
+    raw_queue.message_handler_function = handler
+
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.add_message(message_body="Message Body")
+
+    raw_queue.consume_messages(wait_seconds=1, run_forever=True)
+
+    assert handler.call_count == 3
