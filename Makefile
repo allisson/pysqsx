@@ -14,3 +14,18 @@ start-queue:
 stop-queue:
 	docker kill $$(docker ps -aqf name=pysqsx-elasticmq)
 	docker container rm $$(docker ps -aqf name=pysqsx-elasticmq)
+
+.PHONY: clean
+clean:
+	@rm -rf dist/
+	@rm -rf build/
+	@rm -rf *.egg-info
+
+.PHONY: dist
+dist: clean
+	poetry run python setup.py sdist
+	poetry run python setup.py bdist_wheel
+
+.PHONY: release
+release: dist
+	poetry run twine upload dist/*

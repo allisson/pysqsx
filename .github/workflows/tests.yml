@@ -1,6 +1,8 @@
 name: Execute lint and tests
 
-on: [push]
+on:
+  workflow_call:
+  push:
 
 jobs:
   tests:

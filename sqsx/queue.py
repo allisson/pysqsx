@@ -19,11 +19,6 @@ class Queue(BaseModel):
     _handlers: Dict[str, Callable] = PrivateAttr(default={})
     _should_consume_tasks_stop: bool = PrivateAttr(default=False)
 
-    def __init__(self, **data) -> None:
-        super().__init__(**data)
-        signal.signal(signal.SIGINT, self._exit_gracefully)
-        signal.signal(signal.SIGTERM, self._exit_gracefully)
-
     def add_task(self, task_name: str, **task_kwargs) -> dict:
         return self.sqs_client.send_message(
             QueueUrl=self.url,
@@ -35,13 +30,15 @@ class Queue(BaseModel):
         self._handlers.update({task_name: fn})
 
     def consume_tasks(
-        self, max_tasks: int = 1, max_threads: int = 1, wait_seconds: int = 5, run_forever: bool = True
+        self, max_tasks: int = 1, max_threads: int = 1, wait_seconds: int = 10, run_forever: bool = True
     ) -> None:
-        logger.info(f"Starting consuming tasks for queue_url={self.url}")
+        logger.info(f"Starting consuming tasks, queue_url={self.url}")
+        signal.signal(signal.SIGINT, self._exit_gracefully)
+        signal.signal(signal.SIGTERM, self._exit_gracefully)
 
         while True:
             if self._should_consume_tasks_stop:
-                logger.info(f"Stopping consuming tasks for queue_url={self.url}")
+                logger.info(f"Stopping consuming tasks, queue_url={self.url}")
                 break
 
             response = self.sqs_client.receive_message(
@@ -51,16 +48,22 @@ class Queue(BaseModel):
                 MessageAttributeNames=["All"],
             )
 
+            sqs_messages = response.get("Messages", [])
+            if not sqs_messages:
+                logger.debug(
+                    f"Waiting some seconds because no message was received, seconds={wait_seconds}, queue_url={self.url}"
+                )
+                time.sleep(wait_seconds)
+                continue
+
             with ThreadPoolExecutor(max_workers=max_threads) as executor:
                 futures = []
-                for sqs_message in response.get("Messages", []):
+                for sqs_message in sqs_messages:
                     futures.append(executor.submit(self._consume_task, sqs_message))
                 wait(futures)
 
             if not run_forever:
                 break
-
-            time.sleep(wait_seconds)
 
     def _exit_gracefully(self, signal_num, current_stack_frame) -> None:
         logger.info("Starting graceful shutdown process")
