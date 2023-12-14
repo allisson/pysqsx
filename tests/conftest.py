@@ -1,7 +1,7 @@
 import boto3
 import pytest
 
-from sqsx.queue import Queue
+from sqsx.queue import Queue, RawQueue
 
 
 @pytest.fixture
@@ -22,10 +22,25 @@ def queue_url():
 
 
 @pytest.fixture
+def raw_queue_url():
+    return "http://localhost:9324/000000000000/raw_tests"
+
+
+@pytest.fixture
 def queue(sqs_client, queue_url):
     sqs_client.create_queue(QueueName=queue_url.split("/")[-1])
     yield Queue(url=queue_url, sqs_client=sqs_client)
     sqs_client.delete_queue(QueueUrl=queue_url)
+
+
+@pytest.fixture
+def raw_queue(sqs_client, raw_queue_url):
+    def task_handler_function(queue_url, sqs_message):
+        print(f"queue_url={queue_url}, sqs_message={sqs_message}")
+
+    sqs_client.create_queue(QueueName=raw_queue_url.split("/")[-1])
+    yield RawQueue(url=raw_queue_url, message_handler_function=task_handler_function, sqs_client=sqs_client)
+    sqs_client.delete_queue(QueueUrl=raw_queue_url)
 
 
 @pytest.fixture

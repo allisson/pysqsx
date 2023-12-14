@@ -1,1 +1,1 @@
-from sqsx.queue import Queue  # noqa
+from sqsx.queue import Queue, RawQueue  # noqa
