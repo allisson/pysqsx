@@ -1,0 +1,23 @@
+name: Execute tests/release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+  release-please:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GoogleCloudPlatform/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: simple
+          package-name: sqsx
