@@ -1,2 +1,2 @@
 # pysqsx
-A simple queue processor for Amazon SQS
+A simple task processor for Amazon SQS.
