@@ -144,3 +144,35 @@ DEBUG:sqsx.queue:Waiting some seconds because no message was received, seconds=1
 ^CINFO:sqsx.queue:Starting graceful shutdown process
 INFO:sqsx.queue:Stopping consuming tasks, queue_url=http://localhost:9324/000000000000/tests
 ```
+
+### Working with exceptions
+
+The default behavior is to retry the message when an exception is raised, you can change this behavior using the exceptions sqsx.exceptions.Retry and sqsx.exceptions.NoRetry.
+
+If you want to change the backoff policy, use the sqsx.exceptions.Retry like this:
+
+```python
+from sqsx.exceptions import Retry
+
+# to use with sqsx.Queue and change the default backoff policy
+def task_handler(context: dict, a: int, b: int, c: int):
+    raise Retry(min_backoff_seconds=100, max_backoff_seconds=200)
+
+# to use with sqsx.RawQueue and change the default backoff policy
+def message_handler(queue_url: str, sqs_message: dict):
+    raise Retry(min_backoff_seconds=100, max_backoff_seconds=200)
+```
+
+If you want to remove the task or message from the queue use the sqsx.exceptions.Retry like this:
+
+```python
+from sqsx.exceptions import NoRetry
+
+# to use with sqsx.Queue and remove the task
+def task_handler(context: dict, a: int, b: int, c: int):
+    raise NoRetry()
+
+# to use with sqsx.RawQueue and remove the message
+def message_handler(queue_url: str, sqs_message: dict):
+    raise NoRetry()
+```
