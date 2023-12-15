@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/allisson/pysqsx/compare/v0.2.0...v0.3.0) (2023-12-15)
+
+
+### Features
+
+* add exceptions to change the default retry behavior ([#8](https://github.com/allisson/pysqsx/issues/8)) ([9175c65](https://github.com/allisson/pysqsx/commit/9175c65bdccd53622741dd1d81fa1491922533e0))
+
 ## [0.2.0](https://github.com/allisson/pysqsx/compare/v0.1.0...v0.2.0) (2023-12-14)
 
 
