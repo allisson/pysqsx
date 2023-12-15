@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+from sqsx.exceptions import NoRetry, Retry
 from sqsx.queue import queue_url_regex
 
 
@@ -18,8 +19,24 @@ def exception_handler(context, a, b, c):
     raise Exception("BOOM!")
 
 
+def retry_exception_handler(context, a, b, c):
+    raise Retry(min_backoff_seconds=100, max_backoff_seconds=200)
+
+
+def no_retry_exception_handler(context, a, b, c):
+    raise NoRetry()
+
+
 def raw_exception_handler(queue_url, sqs_message):
     raise Exception("BOOM!")
+
+
+def raw_retry_exception_handler(queue_url, sqs_message):
+    raise Retry(min_backoff_seconds=100, max_backoff_seconds=200)
+
+
+def raw_no_retry_exception_handler(queue_url, sqs_message):
+    raise NoRetry()
 
 
 def trigger_signal():
@@ -163,9 +180,31 @@ def test_queue_consume_messages_with_task_handler_exception(queue, caplog):
 
     queue.consume_messages(run_forever=False)
 
-    assert caplog.record_tuples[0][0] == "sqsx.queue"
-    assert caplog.record_tuples[0][1] == 40
-    assert "Error while processing" in caplog.record_tuples[0][2]
+    assert caplog.record_tuples[1][0] == "sqsx.queue"
+    assert caplog.record_tuples[1][1] == 40
+    assert "Error while processing" in caplog.record_tuples[1][2]
+
+
+def test_queue_consume_messages_with_task_handler_retry_exception(queue, caplog):
+    queue.add_task_handler("my_task", retry_exception_handler)
+    queue.add_task("my_task", a=1, b=2, c=3)
+
+    queue.consume_messages(run_forever=False)
+
+    assert caplog.record_tuples[1][0] == "sqsx.queue"
+    assert caplog.record_tuples[1][1] == 20
+    assert "Received an sqsx.Retry, setting a custom backoff policy" in caplog.record_tuples[1][2]
+
+
+def test_queue_consume_messages_with_task_handler_no_retry_exception(queue, caplog):
+    queue.add_task_handler("my_task", no_retry_exception_handler)
+    queue.add_task("my_task", a=1, b=2, c=3)
+
+    queue.consume_messages(run_forever=False)
+
+    assert caplog.record_tuples[1][0] == "sqsx.queue"
+    assert caplog.record_tuples[1][1] == 20
+    assert "Received an sqsx.NoRetry, removing the task" in caplog.record_tuples[1][2]
 
 
 def test_queue_exit_gracefully(queue):
@@ -214,9 +253,31 @@ def test_raw_queue_consume_messages_with_message_handler_exception(raw_queue, ca
     raw_queue.add_message(message_body="Message Body")
     raw_queue.consume_messages(run_forever=False)
 
-    assert caplog.record_tuples[0][0] == "sqsx.queue"
-    assert caplog.record_tuples[0][1] == 40
-    assert "Error while processing" in caplog.record_tuples[0][2]
+    assert caplog.record_tuples[1][0] == "sqsx.queue"
+    assert caplog.record_tuples[1][1] == 40
+    assert "Error while processing" in caplog.record_tuples[1][2]
+
+
+def test_raw_queue_consume_messages_with_message_handler_retry_exception(raw_queue, caplog):
+    raw_queue.message_handler_function = raw_retry_exception_handler
+
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.consume_messages(run_forever=False)
+
+    assert caplog.record_tuples[1][0] == "sqsx.queue"
+    assert caplog.record_tuples[1][1] == 20
+    assert "Received an sqsx.Retry, setting a custom backoff policy" in caplog.record_tuples[1][2]
+
+
+def test_raw_queue_consume_messages_with_message_handler_no_retry_exception(raw_queue, caplog):
+    raw_queue.message_handler_function = raw_no_retry_exception_handler
+
+    raw_queue.add_message(message_body="Message Body")
+    raw_queue.consume_messages(run_forever=False)
+
+    assert caplog.record_tuples[1][0] == "sqsx.queue"
+    assert caplog.record_tuples[1][1] == 20
+    assert "Received an sqsx.NoRetry, removing the message" in caplog.record_tuples[1][2]
 
 
 def test_raw_queue_exit_gracefully(raw_queue):

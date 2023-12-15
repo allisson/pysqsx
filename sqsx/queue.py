@@ -2,10 +2,11 @@ import logging
 import signal
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from pydantic import BaseModel, Field, PrivateAttr
 
+from sqsx.exceptions import NoRetry, Retry
 from sqsx.helper import backoff_calculator_seconds, base64_to_dict, dict_to_base64
 
 logger = logging.getLogger(__name__)
@@ -57,12 +58,17 @@ class BaseQueueMixin:
         receipt_handle = sqs_message["ReceiptHandle"]
         self.sqs_client.delete_message(QueueUrl=self.url, ReceiptHandle=receipt_handle)
 
-    def _message_nack(self, sqs_message: dict) -> None:
+    def _message_nack(
+        self,
+        sqs_message: dict,
+        min_backoff_seconds: Optional[int] = None,
+        max_backoff_seconds: Optional[int] = None,
+    ) -> None:
+        min_backoff_seconds = min_backoff_seconds if min_backoff_seconds else self.min_backoff_seconds
+        max_backoff_seconds = max_backoff_seconds if max_backoff_seconds else self.max_backoff_seconds
         receipt_handle = sqs_message["ReceiptHandle"]
         receive_count = int(sqs_message["Attributes"]["ApproximateReceiveCount"]) - 1
-        timeout = backoff_calculator_seconds(
-            receive_count, self.min_backoff_seconds, self.max_backoff_seconds
-        )
+        timeout = backoff_calculator_seconds(receive_count, min_backoff_seconds, max_backoff_seconds)
         self.sqs_client.change_message_visibility(
             QueueUrl=self.url, ReceiptHandle=receipt_handle, VisibilityTimeout=timeout
         )
@@ -114,6 +120,20 @@ class Queue(BaseModel, BaseQueueMixin):
 
         try:
             task_handler_function(context, **kwargs)
+        except Retry as exc:
+            logger.info(
+                f"Received an sqsx.Retry, setting a custom backoff policy, message_id={message_id}, task_name={task_name}"
+            )
+            return self._message_nack(
+                sqs_message,
+                min_backoff_seconds=exc.min_backoff_seconds,
+                max_backoff_seconds=exc.max_backoff_seconds,
+            )
+        except NoRetry:
+            logger.info(
+                f"Received an sqsx.NoRetry, removing the task, message_id={message_id}, task_name={task_name}"
+            )
+            return self._message_ack(sqs_message)
         except Exception:
             logger.exception(f"Error while processing, message_id={message_id}, task_name={task_name}")
             return self._message_nack(sqs_message)
@@ -137,10 +157,21 @@ class RawQueue(BaseModel, BaseQueueMixin):
         )
 
     def _consume_message(self, sqs_message: dict) -> None:
+        message_id = sqs_message["MessageId"]
+
         try:
             self.message_handler_function(self.url, sqs_message)
+        except Retry as exc:
+            logger.info(f"Received an sqsx.Retry, setting a custom backoff policy, message_id={message_id}")
+            return self._message_nack(
+                sqs_message,
+                min_backoff_seconds=exc.min_backoff_seconds,
+                max_backoff_seconds=exc.max_backoff_seconds,
+            )
+        except NoRetry:
+            logger.info(f"Received an sqsx.NoRetry, removing the message, message_id={message_id}")
+            return self._message_ack(sqs_message)
         except Exception:
-            message_id = sqs_message["MessageId"]
             logger.exception(f"Error while processing, message_id={message_id}")
             return self._message_nack(sqs_message)
 
