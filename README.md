@@ -1,4 +1,4 @@
-# pysqsx
+# sqsx
 [![Tests](https://github.com/allisson/pysqsx/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/allisson/pysqsx/actions/workflows/tests.yml)
 ![PyPI - Version](https://img.shields.io/pypi/v/sqsx)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sqsx)
@@ -163,7 +163,7 @@ def message_handler(queue_url: str, sqs_message: dict):
     raise Retry(min_backoff_seconds=100, max_backoff_seconds=200)
 ```
 
-If you want to remove the task or message from the queue use the sqsx.exceptions.Retry like this:
+If you want to remove the task or message from the queue use the sqsx.exceptions.NoRetry like this:
 
 ```python
 from sqsx.exceptions import NoRetry
