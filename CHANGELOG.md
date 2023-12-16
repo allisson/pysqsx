@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/allisson/pysqsx/compare/v0.3.0...v0.3.1) (2023-12-16)
+
+
+### Bug Fixes
+
+* fix a doc typo in the exceptions section ([#10](https://github.com/allisson/pysqsx/issues/10)) ([a8beebe](https://github.com/allisson/pysqsx/commit/a8beebebffb0aee73f6fd8b7315d47e697c9c482))
+
 ## [0.3.0](https://github.com/allisson/pysqsx/compare/v0.2.0...v0.3.0) (2023-12-15)
 
 
