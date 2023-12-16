@@ -19,6 +19,10 @@ jobs:
       - name: Install system dependencies
         run: sudo apt update && sudo apt install --no-install-recommends -y make git
       - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache
+          key: self-runner-${{ runner.os }}-python-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}-precommit-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
