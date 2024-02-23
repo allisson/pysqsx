@@ -1,8 +1,9 @@
 import logging
 import signal
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, wait
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -61,8 +62,8 @@ class BaseQueueMixin:
     def _message_nack(
         self,
         sqs_message: dict,
-        min_backoff_seconds: Optional[int] = None,
-        max_backoff_seconds: Optional[int] = None,
+        min_backoff_seconds: int | None = None,
+        max_backoff_seconds: int | None = None,
     ) -> None:
         min_backoff_seconds = min_backoff_seconds if min_backoff_seconds else self.min_backoff_seconds
         max_backoff_seconds = max_backoff_seconds if max_backoff_seconds else self.max_backoff_seconds
@@ -79,7 +80,7 @@ class Queue(BaseModel, BaseQueueMixin):
     sqs_client: Any
     min_backoff_seconds: int = Field(default=30)
     max_backoff_seconds: int = Field(default=900)
-    _handlers: Dict[str, Callable] = PrivateAttr(default={})
+    _handlers: dict[str, Callable] = PrivateAttr(default={})
     _should_consume_tasks_stop: bool = PrivateAttr(default=False)
 
     def add_task(self, task_name: str, **task_kwargs) -> dict:
