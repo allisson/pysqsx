@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/allisson/pysqsx/compare/v0.3.1...v0.4.0) (2024-02-23)
+
+
+### Features
+
+* use ruff linter and code formatter ([#12](https://github.com/allisson/pysqsx/issues/12)) ([b2007e2](https://github.com/allisson/pysqsx/commit/b2007e26633dcbf69f6e2f70b89204fe67c34c8a))
+
 ## [0.3.1](https://github.com/allisson/pysqsx/compare/v0.3.0...v0.3.1) (2023-12-16)
 
 
