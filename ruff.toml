@@ -2,8 +2,8 @@
 line-length = 110
 indent-width = 4
 
-# Assume Python 3.12.
-target-version = "py312"
+# Assume Python 3.8.
+target-version = "py38"
 
 # Enable automatic fixes.
 fix = true
