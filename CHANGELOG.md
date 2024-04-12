@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/allisson/pysqsx/compare/v0.4.0...v0.5.0) (2024-04-12)
+
+
+### Features
+
+* add polling_wait_seconds kwarg on consume_messages ([#14](https://github.com/allisson/pysqsx/issues/14)) ([78f1d9d](https://github.com/allisson/pysqsx/commit/78f1d9df05af8e83940fd1d0b8afb21b72afdd5c))
+
 ## [0.4.0](https://github.com/allisson/pysqsx/compare/v0.3.1...v0.4.0) (2024-02-23)
 
 
