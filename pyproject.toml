@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sqsx"
-version = "0.3.1"
+version = "0.5.0"
 description = "A simple task processor for Amazon SQS"
 authors = ["Allisson Azevedo"]
 readme = "README.md"

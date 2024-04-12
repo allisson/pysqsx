@@ -15,7 +15,12 @@ queue_url_regex = r"(http|https)[:][\/]{2}[a-zA-Z0-9-_:.]+[\/][0-9]{12}[\/]{1}[a
 
 class BaseQueueMixin:
     def consume_messages(
-        self, max_messages: int = 1, max_threads: int = 1, wait_seconds: int = 10, run_forever: bool = True
+        self,
+        max_messages: int = 1,
+        max_threads: int = 1,
+        wait_seconds: int = 10,
+        polling_wait_seconds: int = 10,
+        run_forever: bool = True,
     ) -> None:
         logger.info(f"Starting consuming tasks, queue_url={self.url}")
         signal.signal(signal.SIGINT, self._exit_gracefully)
@@ -31,6 +36,7 @@ class BaseQueueMixin:
                 AttributeNames=["All"],
                 MaxNumberOfMessages=min(max_messages, 10),
                 MessageAttributeNames=["All"],
+                WaitTimeSeconds=polling_wait_seconds,
             )
 
             sqs_messages = response.get("Messages", [])
