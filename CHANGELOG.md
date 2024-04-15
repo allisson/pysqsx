@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/allisson/pysqsx/compare/v0.5.0...v0.5.1) (2024-04-15)
+
+
+### Bug Fixes
+
+* improve log of consume_messages method ([#16](https://github.com/allisson/pysqsx/issues/16)) ([7a4a9b2](https://github.com/allisson/pysqsx/commit/7a4a9b217aa72e36f0034b07ff8987c118efed37))
+
 ## [0.5.0](https://github.com/allisson/pysqsx/compare/v0.4.0...v0.5.0) (2024-04-12)
 
 
