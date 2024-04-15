@@ -42,7 +42,8 @@ class BaseQueueMixin:
             sqs_messages = response.get("Messages", [])
             if not sqs_messages:
                 logger.debug(
-                    f"Waiting some seconds because no message was received, seconds={wait_seconds}, queue_url={self.url}"
+                    f"Waiting some seconds because no message was received, wait_seconds={wait_seconds}, "
+                    f"polling_wait_seconds={polling_wait_seconds}, queue_url={self.url}"
                 )
                 time.sleep(wait_seconds)
                 continue
