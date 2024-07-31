@@ -1,10 +1,10 @@
 .PHONY: test
 test:
-	poetry run pytest -v
+	pytest -v
 
 .PHONY: lint
 lint:
-	poetry run pre-commit run --all-files
+	pre-commit run --all-files
 
 .PHONY: start-queue
 start-queue:
@@ -23,9 +23,9 @@ clean:
 
 .PHONY: dist
 dist: clean
-	poetry run python setup.py sdist
-	poetry run python setup.py bdist_wheel
+	python setup.py sdist
+	python setup.py bdist_wheel
 
 .PHONY: release
 release: dist
-	poetry run twine upload dist/*
+	twine upload dist/*
