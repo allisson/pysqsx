@@ -23,9 +23,9 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     keywords="aws, sqs",
     packages=find_packages(),
     install_requires=["boto3>=1.33.13", "pydantic>=2.5.2"],
-    tests_require=["pytest>=7.4.3", "pytest-cov>=4.1.0", "pre-commit==3.5.0"],
 )

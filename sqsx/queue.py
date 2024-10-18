@@ -14,6 +14,12 @@ queue_url_regex = r"(http|https)[:][\/]{2}[a-zA-Z0-9-_:.]+[\/][0-9]{12}[\/]{1}[a
 
 
 class BaseQueueMixin:
+    url: str
+    sqs_client: Any
+    min_backoff_seconds: int
+    max_backoff_seconds: int
+    _consume_message: Any
+
     def consume_messages(
         self,
         max_messages: int = 1,
