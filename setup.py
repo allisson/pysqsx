@@ -7,7 +7,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="sqsx",
-    version="0.5.1",
+    version="0.6.0",
     description="A simple task processor for Amazon SQS",
     long_description=long_description,
     long_description_content_type="text/markdown",
