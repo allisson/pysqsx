@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/allisson/pysqsx/compare/v0.5.1...v0.6.0) (2025-04-23)
+
+
+### Features
+
+* add enable_signal_to_exit_gracefully argument on consume_messages ([#20](https://github.com/allisson/pysqsx/issues/20)) ([1c031b0](https://github.com/allisson/pysqsx/commit/1c031b061edca194ed1bfcb234d570aa5081e96a))
+
 ## [0.5.1](https://github.com/allisson/pysqsx/compare/v0.5.0...v0.5.1) (2024-04-15)
 
 
