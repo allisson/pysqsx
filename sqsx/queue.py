@@ -27,10 +27,13 @@ class BaseQueueMixin:
         wait_seconds: int = 10,
         polling_wait_seconds: int = 10,
         run_forever: bool = True,
+        enable_signal_to_exit_gracefully: bool = True,
     ) -> None:
         logger.info(f"Starting consuming tasks, queue_url={self.url}")
-        signal.signal(signal.SIGINT, self._exit_gracefully)
-        signal.signal(signal.SIGTERM, self._exit_gracefully)
+
+        if enable_signal_to_exit_gracefully:
+            signal.signal(signal.SIGINT, self.exit_gracefully)
+            signal.signal(signal.SIGTERM, self.exit_gracefully)
 
         while True:
             if self._should_consume_tasks_stop:
@@ -63,7 +66,7 @@ class BaseQueueMixin:
             if not run_forever:
                 break
 
-    def _exit_gracefully(self, signal_num, current_stack_frame) -> None:
+    def exit_gracefully(self, signal_num, current_stack_frame) -> None:
         logger.info("Starting graceful shutdown process")
         self._should_consume_tasks_stop = True
 

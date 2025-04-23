@@ -216,7 +216,9 @@ def test_queue_exit_gracefully(queue):
     queue.add_task_handler("my_task", handler)
     queue.add_task("my_task", a=1, b=2, c=3)
 
-    queue.consume_messages(wait_seconds=1, polling_wait_seconds=0, run_forever=True)
+    queue.consume_messages(
+        wait_seconds=1, polling_wait_seconds=0, run_forever=True, enable_signal_to_exit_gracefully=True
+    )
 
     assert handler.result_sum == 6
 
@@ -291,6 +293,8 @@ def test_raw_queue_exit_gracefully(raw_queue):
     raw_queue.add_message(message_body="Message Body")
     raw_queue.add_message(message_body="Message Body")
 
-    raw_queue.consume_messages(wait_seconds=1, polling_wait_seconds=0, run_forever=True)
+    raw_queue.consume_messages(
+        wait_seconds=1, polling_wait_seconds=0, run_forever=True, enable_signal_to_exit_gracefully=True
+    )
 
     assert handler.call_count == 3
