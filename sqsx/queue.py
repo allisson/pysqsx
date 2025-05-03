@@ -2,7 +2,8 @@ import logging
 import signal
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
-from typing import Any, Callable, Dict, Optional
+from types import FrameType
+from typing import Any, Callable, Optional
 
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -32,8 +33,8 @@ class BaseQueueMixin:
         logger.info(f"Starting consuming tasks, queue_url={self.url}")
 
         if enable_signal_to_exit_gracefully:
-            signal.signal(signal.SIGINT, self.exit_gracefully)
-            signal.signal(signal.SIGTERM, self.exit_gracefully)
+            signal.signal(signal.SIGINT, self._exit_gracefully_from_signal)
+            signal.signal(signal.SIGTERM, self._exit_gracefully_from_signal)
 
         while True:
             if self._should_consume_tasks_stop:
@@ -66,9 +67,12 @@ class BaseQueueMixin:
             if not run_forever:
                 break
 
-    def exit_gracefully(self, signal_num, current_stack_frame) -> None:
-        logger.info("Starting graceful shutdown process")
+    def exit_gracefully(self) -> None:
+        logger.info(f"Starting graceful shutdown process, queue_url={self.url}")
         self._should_consume_tasks_stop = True
+
+    def _exit_gracefully_from_signal(self, signal: int, frame: Optional[FrameType]):
+        self.exit_gracefully()
 
     def _message_ack(self, sqs_message: dict) -> None:
         receipt_handle = sqs_message["ReceiptHandle"]
@@ -95,7 +99,7 @@ class Queue(BaseModel, BaseQueueMixin):
     sqs_client: Any
     min_backoff_seconds: int = Field(default=30)
     max_backoff_seconds: int = Field(default=900)
-    _handlers: Dict[str, Callable] = PrivateAttr(default={})
+    _handlers: dict[str, Callable] = PrivateAttr(default={})
     _should_consume_tasks_stop: bool = PrivateAttr(default=False)
 
     def add_task(self, task_name: str, **task_kwargs) -> dict:
@@ -165,7 +169,9 @@ class RawQueue(BaseModel, BaseQueueMixin):
     max_backoff_seconds: int = Field(default=900)
     _should_consume_tasks_stop: bool = PrivateAttr(default=False)
 
-    def add_message(self, message_body: str, message_attributes: dict = {}) -> dict:
+    def add_message(self, message_body: str, message_attributes: Optional[dict] = None) -> dict:
+        if message_attributes is None:
+            message_attributes = {}
         return self.sqs_client.send_message(
             QueueUrl=self.url,
             MessageAttributes=message_attributes,
