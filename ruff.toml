@@ -2,8 +2,8 @@
 line-length = 110
 indent-width = 4
 
-# Assume Python 3.8.
-target-version = "py38"
+# Assume Python 3.9.
+target-version = "py39"
 
 # Enable automatic fixes.
 fix = true
@@ -21,8 +21,9 @@ line-ending = "auto"
 # "F": Pyflakes https://docs.astral.sh/ruff/rules/#pyflakes-f
 # "E", "W": pycodestyle https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
 # "I": isort https://docs.astral.sh/ruff/rules/#isort-i
+# "B": flake8-bugbear https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
 [lint]
-select = ["UP", "F", "E", "W", "I"]
+select = ["UP", "F", "E", "W", "I", "B"]
 ignore = ["E203", "E501"]
 
 # Isort config.
