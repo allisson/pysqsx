@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/allisson/pysqsx/compare/v0.6.0...v0.6.1) (2025-05-03)
+
+
+### Bug Fixes
+
+* remove the args from exit_gracefully method ([#22](https://github.com/allisson/pysqsx/issues/22)) ([27b946e](https://github.com/allisson/pysqsx/commit/27b946ef2f321bf0979e93106409c19bb95da037))
+
 ## [0.6.0](https://github.com/allisson/pysqsx/compare/v0.5.1...v0.6.0) (2025-04-23)
 
 
