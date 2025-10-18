@@ -14,17 +14,17 @@ jobs:
           - 9324:9324
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Install system dependencies
         run: sudo apt update && sudo apt install --no-install-recommends -y make git
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache@v4
         with:
           path: ~/.cache
           key: self-runner-${{ runner.os }}-python-${{ matrix.python-version }}-requirements-${{ hashFiles('requirements-dev.txt') }}-precommit-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
