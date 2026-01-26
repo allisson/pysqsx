@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/allisson/pysqsx/compare/v0.6.1...v0.7.0) (2026-01-26)
+
+
+### Features
+
+* comprehensive codebase improvements and documentation overhaul ([#25](https://github.com/allisson/pysqsx/issues/25)) ([ce6f7cf](https://github.com/allisson/pysqsx/commit/ce6f7cf6bfd6cbac0f4245f17a179ddee2502948))
+
 ## [0.6.1](https://github.com/allisson/pysqsx/compare/v0.6.0...v0.6.1) (2025-05-03)
 
 
